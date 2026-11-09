@@ -43,17 +43,30 @@
         </select>
       </div>
 
-      <!-- Right Nav Controls (Admin Portal & Actions) -->
+      <!-- Right Nav Controls. Visitors land here first; hosting is opt-in. -->
       <div class="nav-actions">
-        <!-- Logged Out / Public State: Admin Portal Button (hidden on shared links) -->
-        <button class="btn btn-outline" id="openAuthModalBtn">
-          <span class="material-symbols-outlined">lock</span>
-          <span>Admin Portal</span>
-        </button>
+        <div class="public-host-cta" id="publicHostCta">
+          <span class="host-cta-copy">Want to post your events?</span>
+          <button class="btn btn-primary" id="openSignupBtn" type="button">
+            <span class="material-symbols-outlined">add_circle</span>
+            <span>Sign up</span>
+          </button>
+          <button class="btn btn-outline" id="openAuthModalBtn" type="button">
+            <span>Sign in</span>
+          </button>
+        </div>
 
         <!-- Logged In Admin Controls (Strictly hidden for public attendees) -->
         <div class="admin-controls" id="adminControls" style="display: none;">
           <!-- Share Link Button -->
+          <button class="btn btn-outline" id="myStudioBtn" type="button" style="display: none;">
+            <span class="material-symbols-outlined">space_dashboard</span>
+            <span>My studio</span>
+          </button>
+          <button class="btn btn-outline" id="viewAllEventsBtn" type="button" style="display: none;">
+            <span class="material-symbols-outlined">grid_view</span>
+            <span>View all events</span>
+          </button>
           <button class="btn btn-share" id="sharePublicLinkBtn" title="Share public link with attendees">
             <span class="material-symbols-outlined">share</span>
             <span>Share Link</span>
@@ -70,7 +83,7 @@
             <div class="admin-avatar" id="adminAvatarText">AD</div>
             <div class="admin-profile-info">
               <span class="admin-name" id="adminNameDisplay">Admin</span>
-              <span class="admin-role">Organizer</span>
+              <span class="admin-role" id="adminPlanLabel">Free host</span>
             </div>
             <button class="icon-btn-ghost" id="adminLogoutBtn" title="Sign Out of Admin Studio">
               <span class="material-symbols-outlined">logout</span>
@@ -88,20 +101,25 @@
         <span class="material-symbols-outlined">verified_user</span>
         <span>Authorized Admin Session</span>
       </div>
-      <p class="admin-banner-text">
-        Logged in as <strong id="adminSessionEmail">admin@citypulse.ng</strong>. You can publish, edit, and delete events. Attendees accessing the shared link only see public browsing, recommendations, and reviews.
+      <p class="admin-banner-text" id="adminPlanSummary">
+        Logged in as <strong id="adminSessionEmail">admin@citypulse.ng</strong>.
       </p>
       <div class="admin-banner-actions">
-        <button class="btn btn-sm btn-white-glass" id="quickShareBtn">
+        <button class="btn btn-sm btn-white-glass" id="quickShareBtn" type="button">
           <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span>
           Copy Attendee Link
+        </button>
+        <button class="btn btn-sm btn-white-glass" id="upgradePlanBtn" type="button">
+          <span class="material-symbols-outlined" style="font-size:16px;">workspace_premium</span>
+          Upgrade to Premium
         </button>
       </div>
     </div>
   </div>
 
   <main class="main-content">
-    
+    <section id="hostStudio" class="host-studio" hidden></section>
+    <div id="discoverView">
     <!-- Hero / Discovery Banner -->
     <section class="hero-banner">
       <div class="hero-content">
@@ -130,6 +148,26 @@
           </div>
 
           <div class="filter-dropdown-group">
+            <!-- Admission: free events or paid tickets -->
+            <div class="select-wrapper">
+              <span class="material-symbols-outlined select-icon">confirmation_number</span>
+              <select id="admissionFilter" aria-label="Filter by admission">
+                <option value="all">Free & Ticketed</option>
+                <option value="free">Free events</option>
+                <option value="paid">Ticketed events</option>
+              </select>
+            </div>
+
+            <!-- Paid tickets are Naira or Dollars only -->
+            <div class="select-wrapper">
+              <span class="material-symbols-outlined select-icon">payments</span>
+              <select id="currencyFilter" aria-label="Filter by Currency">
+                <option value="all">All currencies (₦ & $)</option>
+                <option value="₦">₦ Naira tickets</option>
+                <option value="$">$ Dollar tickets</option>
+              </select>
+            </div>
+
             <!-- Filter by Rating -->
             <div class="select-wrapper">
               <span class="material-symbols-outlined select-icon">star</span>
@@ -225,6 +263,7 @@
         <span>Reset Filters</span>
       </button>
     </div>
+    </div>
 
   </main>
 
@@ -282,8 +321,9 @@
       <!-- Sign Up Form (Hidden by default) -->
       <form id="registerForm" class="auth-form" style="display: none;">
         <div class="form-group">
-          <label for="regName">Full Name / Organization</label>
-          <input type="text" id="regName" placeholder="e.g. Tunde Balogun / Lagos Live Events" required>
+          <label for="regName">Host name</label>
+          <input type="text" id="regName" placeholder="e.g. Tunde Balogun" required>
+          <span class="field-hint">This name is shown on every event you post.</span>
         </div>
 
         <div class="form-group">
@@ -310,9 +350,27 @@
           <input type="password" id="regPassword" placeholder="Minimum 6 characters" minlength="6" required autocomplete="new-password">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block mt-2">
+        <fieldset class="plan-picker">
+          <legend>Choose a hosting plan</legend>
+          <label class="plan-card">
+            <input type="radio" name="signupPlan" value="free" checked>
+            <span class="plan-card-body">
+              <strong>Start free</strong>
+              <span>Post up to 5 events. No payment.</span>
+            </span>
+          </label>
+          <label class="plan-card">
+            <input type="radio" name="signupPlan" value="premium">
+            <span class="plan-card-body">
+              <strong>Premium · ₦5,000</strong>
+              <span>Unlimited events. Test payment with Paystack — no real charge.</span>
+            </span>
+          </label>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary btn-block mt-2" id="registerSubmitBtn">
           <span class="material-symbols-outlined">how_to_reg</span>
-          <span>Register Admin Account</span>
+          <span>Create host account</span>
         </button>
       </form>
     </div>
@@ -430,21 +488,60 @@
           </div>
         </div>
 
-        <!-- Ticket Currency & Price Selection (Naira / Dollars) -->
-        <div class="form-row">
+        <div class="form-group">
+          <span class="field-label">Admission *</span>
+          <div class="admission-toggle">
+            <label class="admission-option">
+              <input type="radio" name="admissionType" value="free" id="admissionFree">
+              <span>Free event</span>
+            </label>
+            <label class="admission-option">
+              <input type="radio" name="admissionType" value="paid" id="admissionPaid" checked>
+              <span>Paid ticket</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Paid tickets: Naira or Dollars only -->
+        <div class="form-row" id="ticketPricingRow">
           <div class="form-group">
-            <label for="eventCurrency">Ticket Currency *</label>
+            <label for="eventCurrency">Ticket currency *</label>
             <select id="eventCurrency">
               <option value="₦">₦ Naira (NGN)</option>
               <option value="$">$ Dollars (USD)</option>
-              <option value="Free">Free Admission</option>
             </select>
           </div>
 
           <div class="form-group" id="ticketAmountGroup">
-            <label for="eventPriceAmount">Ticket Price Amount *</label>
-            <input type="text" id="eventPriceAmount" placeholder="e.g. 15,000 or 50">
+            <label for="eventPriceAmount">Ticket amount *</label>
+            <input type="text" id="eventPriceAmount" placeholder="e.g. 15,000 or 50" inputmode="decimal">
           </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="eventCapacity">Tickets available *</label>
+            <input type="number" id="eventCapacity" min="1" step="1" placeholder="e.g. 200" required>
+            <span class="field-hint" id="capacityHint">How many tickets or free spots you will release. You can raise this later.</span>
+          </div>
+          <div class="form-group">
+            <label for="eventSalesClose">Ticket sales close *</label>
+            <input type="datetime-local" id="eventSalesClose" required>
+            <span class="field-hint">After this time visitors can no longer buy a ticket or RSVP.</span>
+          </div>
+        </div>
+
+        <div class="form-group" id="discountRow">
+          <label for="eventDiscount">Discount</label>
+          <select id="eventDiscount">
+            <option value="0">No discount</option>
+            <option value="10">10% off</option>
+            <option value="15">15% off</option>
+            <option value="20">20% off</option>
+            <option value="25">25% off</option>
+            <option value="50">50% off</option>
+          </select>
+          <span class="field-hint">Buyers pay the reduced price. The card shows a discount tag.</span>
         </div>
 
         <div class="form-group">
@@ -520,12 +617,61 @@
     </div>
   </div>
 
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CityPulse Nigeria</strong>
+        <p>Events across Lagos, Abuja, Port Harcourt, and beyond.</p>
+      </div>
+      <div class="footer-cta" id="footerHostCta">
+        <p>Want to post your events?</p>
+        <button class="btn btn-primary" id="footerSignupBtn" type="button">Sign up to host</button>
+      </div>
+      <p class="footer-signed-in" id="footerSignedIn" hidden></p>
+    </div>
+  </footer>
+
+  <!-- Ticket checkout & Premium upgrade (Paystack test) -->
+  <div class="modal-backdrop" id="checkoutModal" aria-hidden="true">
+    <div class="modal-dialog modal-small">
+      <button class="modal-close-btn" id="closeCheckoutBtn" title="Close" type="button">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <div class="share-icon-circle">
+        <span class="material-symbols-outlined">payments</span>
+      </div>
+      <h3 class="modal-title" id="checkoutTitle">Pay with Paystack</h3>
+      <p class="modal-subtitle" id="checkoutSummary">Test checkout. No real charge.</p>
+
+      <form id="checkoutForm" class="auth-form">
+        <div class="form-group">
+          <label for="checkoutName">Your name</label>
+          <input type="text" id="checkoutName" required>
+        </div>
+        <div class="form-group">
+          <label for="checkoutEmail">Email for the receipt</label>
+          <input type="email" id="checkoutEmail" required autocomplete="email">
+        </div>
+        <div class="form-group" id="paystackKeyGroup">
+          <label for="paystackKeyInput">Paystack test public key</label>
+          <input type="text" id="paystackKeyInput" value="pk_test_448800889e222223b1407c1bae6e57b612aeb8f0" readonly autocomplete="off" spellcheck="false">
+          <span class="field-hint">Filled in automatically for test checkout. Test card 4084084084084081, any future expiry, CVV 408, PIN 0000, OTP 123456.</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="checkoutPayBtn">
+          <span class="material-symbols-outlined">lock</span>
+          <span>Pay with Paystack (test)</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast-notification" id="toastNotification" role="alert" aria-live="polite">
     <span class="material-symbols-outlined toast-icon" id="toastIcon">check_circle</span>
     <span class="toast-message" id="toastMessage">Action completed successfully</span>
   </div>
 
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
