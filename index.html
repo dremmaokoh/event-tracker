@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CityPulse — Discover Events in Your City</title>
+  <title>CityPulse Nigeria — Discover Events in Your City</title>
   <!-- Google Fonts & Material Symbols -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="style.css">
 </head>
@@ -16,57 +16,87 @@
   <!-- Top Navigation Bar -->
   <header class="navbar">
     <div class="nav-container">
-      <div class="brand">
+      <div class="brand" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
         <div class="brand-logo">
           <span class="material-symbols-outlined logo-icon">location_city</span>
         </div>
         <div class="brand-text">
-          <span class="brand-title">City<strong>Pulse</strong></span>
-          <span class="brand-badge">Local Events</span>
+          <span class="brand-title">City<strong>Pulse</strong> <span class="country-pill">🇳🇬 NG</span></span>
+          <span class="brand-badge">Nigerian Events Hub</span>
         </div>
       </div>
 
-      <!-- Quick City Selector -->
+      <!-- Quick City Selector (Main Nigerian Cities) -->
       <div class="nav-city-picker">
-        <span class="material-symbols-outlined">near_me</span>
-        <select id="navCitySelect" aria-label="Select City">
-          <option value="all">🌍 All Cities</option>
+        <span class="material-symbols-outlined">explore</span>
+        <select id="navCitySelect" aria-label="Select Nigerian City">
+          <option value="all">🇳🇬 All Nigerian Cities</option>
           <option value="Lagos">📍 Lagos</option>
-          <option value="London">📍 London</option>
-          <option value="New York">📍 New York</option>
-          <option value="Tokyo">📍 Tokyo</option>
-          <option value="Paris">📍 Paris</option>
+          <option value="Abuja">📍 Abuja (FCT)</option>
+          <option value="Port Harcourt">📍 Port Harcourt</option>
+          <option value="Ibadan">📍 Ibadan</option>
+          <option value="Enugu">📍 Enugu</option>
+          <option value="Benin City">📍 Benin City</option>
+          <option value="Kano">📍 Kano</option>
+          <option value="Calabar">📍 Calabar</option>
+          <option value="Asaba">📍 Asaba</option>
         </select>
       </div>
 
-      <!-- Right Nav Controls (Search & Mode Toggle) -->
+      <!-- Right Nav Controls (Admin Portal & Actions) -->
       <div class="nav-actions">
-        <!-- View Mode Switcher (Public Explorer vs Admin Mode) -->
-        <div class="role-switch-container">
-          <button class="role-toggle-btn public active" id="viewModeToggle" title="Toggle between Public Explorer & Admin Studio">
-            <span class="material-symbols-outlined mode-icon">public</span>
-            <span class="mode-text" id="viewModeText">Explorer Mode</span>
-          </button>
-        </div>
-
-        <!-- Admin Quick Action (only visible in admin mode) -->
-        <button class="btn btn-primary" id="openCreateModalBtn" style="display: none;">
-          <span class="material-symbols-outlined">add_circle</span>
-          <span>Create Event</span>
+        <!-- Logged Out State: Admin Portal Button -->
+        <button class="btn btn-outline" id="openAuthModalBtn">
+          <span class="material-symbols-outlined">lock</span>
+          <span>Admin Portal</span>
         </button>
+
+        <!-- Logged In Admin Controls (Hidden by default) -->
+        <div class="admin-controls" id="adminControls" style="display: none;">
+          <!-- Share Link Button -->
+          <button class="btn btn-share" id="sharePublicLinkBtn" title="Share public link with attendees">
+            <span class="material-symbols-outlined">share</span>
+            <span>Share Link</span>
+          </button>
+
+          <!-- Create Event Button -->
+          <button class="btn btn-primary" id="openCreateModalBtn">
+            <span class="material-symbols-outlined">add_circle</span>
+            <span>Post Event</span>
+          </button>
+
+          <!-- Admin Profile Badge & Logout -->
+          <div class="admin-profile-pill">
+            <div class="admin-avatar" id="adminAvatarText">AD</div>
+            <div class="admin-profile-info">
+              <span class="admin-name" id="adminNameDisplay">Admin</span>
+              <span class="admin-role">Organizer</span>
+            </div>
+            <button class="icon-btn-ghost" id="adminLogoutBtn" title="Sign Out">
+              <span class="material-symbols-outlined">logout</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- Admin Mode Announcement Banner (Visible when admin mode is on) -->
+  <!-- Admin Active Management Bar -->
   <div class="admin-banner" id="adminBanner" style="display: none;">
     <div class="admin-banner-inner">
       <div class="admin-badge">
-        <span class="material-symbols-outlined">shield_person</span>
-        <span>Admin Mode Active</span>
+        <span class="material-symbols-outlined">verified_user</span>
+        <span>Authorized Admin Session</span>
       </div>
-      <p class="admin-banner-text">You have management rights to insert, edit, and delete events. Normal visitors only see the public dashboard.</p>
-      <button class="btn btn-sm btn-outline-white" id="exitAdminBtn">Exit to Public View</button>
+      <p class="admin-banner-text">
+        Logged in as <strong id="adminSessionEmail">admin@citypulse.ng</strong>. You can post, edit, or delete events. Visitors access the public dashboard via your share link.
+      </p>
+      <div class="admin-banner-actions">
+        <button class="btn btn-sm btn-white-glass" id="quickShareBtn">
+          <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span>
+          Copy Public Link
+        </button>
+      </div>
     </div>
   </div>
 
@@ -77,19 +107,21 @@
       <div class="hero-content">
         <div class="hero-tag">
           <span class="pulse-dot"></span>
-          <span id="activeCityLabel">Happening in All Cities</span>
+          <span id="activeCityLabel">Happening Across Nigeria</span>
         </div>
-        <h1 class="hero-title">Discover the Best Events in Your City</h1>
-        <p class="hero-subtitle">Concerts, tech gatherings, food festivals, arts, and night life — curated by local organizers and rated by real attendees.</p>
+        <h1 class="hero-title">Experience the Best Events Across Nigerian Cities</h1>
+        <p class="hero-subtitle">
+          Afrobeats concerts, tech gatherings, food & suya festivals, art showcases, and prime nightlife in Lagos, Abuja, Port Harcourt, and beyond.
+        </p>
         
-        <!-- Search & Filter Bar -->
+        <!-- Search & Filter Card -->
         <div class="search-filter-card">
           <div class="search-input-group">
             <span class="material-symbols-outlined search-icon">search</span>
             <input 
               type="text" 
               id="globalSearchInput" 
-              placeholder="Search events by name, venue, or keywords..."
+              placeholder="Search by event title, venue, landmark, or city..."
               autocomplete="off"
             >
             <button id="clearSearchBtn" class="clear-btn" style="display: none;" title="Clear search">
@@ -103,19 +135,20 @@
               <span class="material-symbols-outlined select-icon">star</span>
               <select id="ratingFilter" aria-label="Filter by Rating">
                 <option value="0">All Ratings</option>
-                <option value="4.5">⭐ 4.5+ Top Tier</option>
-                <option value="4.0">⭐ 4.0+ Highly Rated</option>
+                <option value="4.5">⭐ 4.5+ Top Rated</option>
+                <option value="4.0">⭐ 4.0+ Highly Recommended</option>
                 <option value="3.5">⭐ 3.5+ Great Events</option>
               </select>
             </div>
 
-            <!-- Sort By (Recommendations, Ratings, Date) -->
+            <!-- Sort By -->
             <div class="select-wrapper">
               <span class="material-symbols-outlined select-icon">sort</span>
               <select id="sortSelect" aria-label="Sort Events">
                 <option value="recommended">🔥 Most Recommended</option>
                 <option value="rating">⭐ Highest Rated</option>
                 <option value="date-asc">📅 Upcoming First</option>
+                <option value="price-asc">💵 Ticket Price (Low to High)</option>
                 <option value="newest">✨ Recently Added</option>
               </select>
             </div>
@@ -132,34 +165,34 @@
       </button>
       <button class="cat-chip" data-category="Music & Concerts">
         <span class="material-symbols-outlined">music_note</span>
-        <span>Music & Concerts</span>
+        <span>Afrobeats & Live Concerts</span>
       </button>
       <button class="cat-chip" data-category="Tech & Business">
         <span class="material-symbols-outlined">terminal</span>
-        <span>Tech & Business</span>
+        <span>Tech & Startups</span>
       </button>
       <button class="cat-chip" data-category="Food & Drink">
         <span class="material-symbols-outlined">restaurant</span>
-        <span>Food & Drink</span>
+        <span>Food & Suya Fiestas</span>
       </button>
       <button class="cat-chip" data-category="Arts & Culture">
         <span class="material-symbols-outlined">palette</span>
         <span>Arts & Culture</span>
       </button>
-      <button class="cat-chip" data-category="Sports & Fitness">
-        <span class="material-symbols-outlined">fitness_center</span>
-        <span>Sports & Fitness</span>
-      </button>
       <button class="cat-chip" data-category="Nightlife">
         <span class="material-symbols-outlined">celebration</span>
-        <span>Nightlife</span>
+        <span>Nightlife & Lounges</span>
+      </button>
+      <button class="cat-chip" data-category="Sports & Fitness">
+        <span class="material-symbols-outlined">fitness_center</span>
+        <span>Sports & Wellness</span>
       </button>
     </section>
 
     <!-- Stats & Live Overview Bar -->
     <section class="events-summary-bar">
       <div class="summary-left">
-        <h2 class="summary-heading" id="eventsCountHeading">Events (0)</h2>
+        <h2 class="summary-heading" id="eventsCountHeading">Live Events (0)</h2>
         <span class="summary-sub" id="filterStatusText">Showing all available listings</span>
       </div>
       <div class="summary-stats">
@@ -184,8 +217,8 @@
       <div class="empty-icon-circle">
         <span class="material-symbols-outlined">event_busy</span>
       </div>
-      <h3 class="empty-title">No events found matching your criteria</h3>
-      <p class="empty-desc">Try clearing your filters or selecting a different city to see what's happening.</p>
+      <h3 class="empty-title">No events found in this city</h3>
+      <p class="empty-desc">Try clearing your filters or selecting another Nigerian city to discover what's happening.</p>
       <button class="btn btn-secondary mt-3" id="resetFiltersBtn">
         <span class="material-symbols-outlined">restart_alt</span>
         <span>Reset Filters</span>
@@ -198,7 +231,125 @@
        MODALS & DIALOGS
        ========================================================================= -->
 
-  <!-- 1. Event Details Modal (For Visitors & Attendees) -->
+  <!-- 1. Admin Authentication Modal (Sign In & Sign Up) -->
+  <div class="modal-backdrop" id="authModal" aria-hidden="true">
+    <div class="modal-dialog auth-dialog">
+      <button class="modal-close-btn" id="closeAuthModalBtn" title="Close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="auth-header">
+        <div class="auth-icon-wrap">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+        </div>
+        <h3 class="auth-title">Admin Event Studio</h3>
+        <p class="auth-desc">Authorized administrators can publish, manage, and share events.</p>
+      </div>
+
+      <!-- Auth Tab Switcher -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tabLoginBtn">Sign In</button>
+        <button type="button" class="auth-tab" id="tabRegisterBtn">Create Admin Account</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" placeholder="admin@citypulse.ng" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block mt-2">
+          <span class="material-symbols-outlined">login</span>
+          <span>Sign In as Admin</span>
+        </button>
+
+        <!-- One-Click Demo Login for Testing -->
+        <div class="demo-auth-box">
+          <span class="demo-label">Demo Quick Access:</span>
+          <button type="button" class="btn btn-sm btn-secondary btn-block" id="fillDemoAdminBtn">
+            ⚡ One-Click Demo Admin Login
+          </button>
+        </div>
+      </form>
+
+      <!-- Sign Up Form (Hidden by default) -->
+      <form id="registerForm" class="auth-form" style="display: none;">
+        <div class="form-group">
+          <label for="regName">Full Name / Organization</label>
+          <input type="text" id="regName" placeholder="e.g. Tunde Balogun / Lagos Live Events" required>
+        </div>
+
+        <div class="form-group">
+          <label for="regCity">Primary Nigerian City</label>
+          <select id="regCity" required>
+            <option value="Lagos">Lagos</option>
+            <option value="Abuja">Abuja</option>
+            <option value="Port Harcourt">Port Harcourt</option>
+            <option value="Ibadan">Ibadan</option>
+            <option value="Enugu">Enugu</option>
+            <option value="Benin City">Benin City</option>
+            <option value="Kano">Kano</option>
+            <option value="Calabar">Calabar</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="regEmail">Admin Email</label>
+          <input type="email" id="regEmail" placeholder="tunde@organization.ng" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label for="regPassword">Create Password</label>
+          <input type="password" id="regPassword" placeholder="Minimum 6 characters" minlength="6" required autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block mt-2">
+          <span class="material-symbols-outlined">how_to_reg</span>
+          <span>Register Admin Account</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Share Public Link Modal -->
+  <div class="modal-backdrop" id="shareModal" aria-hidden="true">
+    <div class="modal-dialog modal-small text-center">
+      <button class="modal-close-btn" id="closeShareModalBtn" title="Close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      
+      <div class="share-icon-circle">
+        <span class="material-symbols-outlined">send</span>
+      </div>
+      <h3 class="modal-title">Share Event Dashboard</h3>
+      <p class="modal-subtitle">Share this public link with attendees so they can view, rate, and recommend your city events.</p>
+
+      <div class="share-input-box">
+        <input type="text" id="shareLinkInput" readonly value="">
+        <button type="button" class="btn btn-primary" id="copyShareLinkBtn">
+          <span class="material-symbols-outlined">content_copy</span>
+          <span>Copy</span>
+        </button>
+      </div>
+
+      <div class="social-share-row mt-3">
+        <a id="shareWhatsAppBtn" href="#" target="_blank" class="social-btn whatsapp">
+          <span>💬 WhatsApp</span>
+        </a>
+        <a id="shareTwitterBtn" href="#" target="_blank" class="social-btn twitter">
+          <span>𝕏 Post</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Event Details Modal (For Visitors & Attendees) -->
   <div class="modal-backdrop" id="eventDetailModal" aria-hidden="true">
     <div class="modal-dialog modal-large">
       <button class="modal-close-btn" id="closeDetailModalBtn" title="Close">
@@ -208,7 +359,7 @@
     </div>
   </div>
 
-  <!-- 2. Admin Create / Edit Event Modal -->
+  <!-- 4. Admin Create / Edit Event Modal -->
   <div class="modal-backdrop" id="eventFormModal" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-header">
@@ -216,8 +367,8 @@
           <span class="material-symbols-outlined" id="formHeaderIcon">edit_calendar</span>
         </div>
         <div>
-          <h3 class="modal-title" id="formModalTitle">Create New Event</h3>
-          <p class="modal-subtitle">Fill in the event details to publish on the city dashboard</p>
+          <h3 class="modal-title" id="formModalTitle">Post New Nigerian Event</h3>
+          <p class="modal-subtitle">Publish event details to the city dashboard</p>
         </div>
         <button class="modal-close-btn" id="closeFormModalBtn" title="Close">
           <span class="material-symbols-outlined">close</span>
@@ -228,26 +379,30 @@
         <input type="hidden" id="editEventId" value="">
 
         <div class="form-group">
-          <label for="eventName">Event Name *</label>
-          <input type="text" id="eventName" placeholder="e.g. Lagos Tech Fest 2026" required>
+          <label for="eventName">Event Title *</label>
+          <input type="text" id="eventName" placeholder="e.g. Afrobeats All-Stars at Eko Atlantic" required>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="eventCity">City *</label>
+            <label for="eventCity">City in Nigeria *</label>
             <select id="eventCity" required>
               <option value="Lagos">Lagos</option>
-              <option value="London">London</option>
-              <option value="New York">New York</option>
-              <option value="Tokyo">Tokyo</option>
-              <option value="Paris">Paris</option>
+              <option value="Abuja">Abuja (FCT)</option>
+              <option value="Port Harcourt">Port Harcourt</option>
+              <option value="Ibadan">Ibadan</option>
+              <option value="Enugu">Enugu</option>
+              <option value="Benin City">Benin City</option>
+              <option value="Kano">Kano</option>
+              <option value="Calabar">Calabar</option>
+              <option value="Asaba">Asaba</option>
               <option value="Custom">Custom City...</option>
             </select>
           </div>
 
           <div class="form-group" id="customCityGroup" style="display: none;">
             <label for="customCityInput">Custom City Name *</label>
-            <input type="text" id="customCityInput" placeholder="Enter city name">
+            <input type="text" id="customCityInput" placeholder="e.g. Uyo, Owerri, Warri">
           </div>
 
           <div class="form-group">
@@ -257,8 +412,8 @@
               <option value="Tech & Business">Tech & Business</option>
               <option value="Food & Drink">Food & Drink</option>
               <option value="Arts & Culture">Arts & Culture</option>
-              <option value="Sports & Fitness">Sports & Fitness</option>
               <option value="Nightlife">Nightlife</option>
+              <option value="Sports & Fitness">Sports & Fitness</option>
             </select>
           </div>
         </div>
@@ -269,37 +424,48 @@
             <input type="datetime-local" id="eventDate" required>
           </div>
           <div class="form-group">
-            <label for="eventVenue">Venue / Address *</label>
-            <input type="text" id="eventVenue" placeholder="e.g. Landmark Centre, VI" required>
+            <label for="eventVenue">Venue & Landmark *</label>
+            <input type="text" id="eventVenue" placeholder="e.g. Landmark Beach, Victoria Island" required>
           </div>
         </div>
 
+        <!-- Ticket Currency & Price Selection (Naira / Dollars) -->
         <div class="form-row">
           <div class="form-group">
-            <label for="eventImage">Picture / Image URL *</label>
-            <input type="url" id="eventImage" placeholder="https://images.unsplash.com/..." required>
+            <label for="eventCurrency">Ticket Currency *</label>
+            <select id="eventCurrency">
+              <option value="₦">₦ Naira (NGN)</option>
+              <option value="$">$ Dollars (USD)</option>
+              <option value="Free">Free Admission</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label for="eventPrice">Entry / Ticket Price</label>
-            <input type="text" id="eventPrice" placeholder="e.g. Free, $25, ₦15,000">
+
+          <div class="form-group" id="ticketAmountGroup">
+            <label for="eventPriceAmount">Ticket Price Amount *</label>
+            <input type="text" id="eventPriceAmount" placeholder="e.g. 15,000 or 50">
           </div>
+        </div>
+
+        <div class="form-group">
+          <label for="eventImage">Cover Photo URL *</label>
+          <input type="url" id="eventImage" placeholder="https://images.unsplash.com/..." required>
         </div>
 
         <!-- Quick Image Presets -->
         <div class="preset-images-wrapper">
-          <span class="preset-label">Quick Image Presets:</span>
+          <span class="preset-label">Quick Cover Photo Presets:</span>
           <div class="preset-tags">
-            <button type="button" class="preset-tag-btn" data-preset="concert">🎵 Concert</button>
-            <button type="button" class="preset-tag-btn" data-preset="tech">💻 Tech</button>
-            <button type="button" class="preset-tag-btn" data-preset="food">🍔 Food</button>
-            <button type="button" class="preset-tag-btn" data-preset="art">🎨 Art</button>
-            <button type="button" class="preset-tag-btn" data-preset="party">🍸 Nightlife</button>
+            <button type="button" class="preset-tag-btn" data-preset="concert">🎵 Afrobeats Concert</button>
+            <button type="button" class="preset-tag-btn" data-preset="tech">💻 Tech Summit</button>
+            <button type="button" class="preset-tag-btn" data-preset="food">🥩 Suya & Food Fiesta</button>
+            <button type="button" class="preset-tag-btn" data-preset="art">🎨 Cultural Art Expo</button>
+            <button type="button" class="preset-tag-btn" data-preset="party">🍸 Lounge & Nightlife</button>
           </div>
         </div>
 
         <div class="form-group">
           <label for="eventDescription">Description *</label>
-          <textarea id="eventDescription" rows="4" placeholder="Describe what attendees can expect, schedule highlights, performers, dress code, etc." required></textarea>
+          <textarea id="eventDescription" rows="4" placeholder="Detail the event highlights, headline performers/speakers, schedule, table reservations, and dress code." required></textarea>
         </div>
 
         <div class="modal-actions">
@@ -313,7 +479,7 @@
     </div>
   </div>
 
-  <!-- 3. Delete Confirmation Dialog -->
+  <!-- 5. Delete Confirmation Dialog -->
   <div class="modal-backdrop" id="deleteConfirmModal" aria-hidden="true">
     <div class="modal-dialog modal-small">
       <div class="confirm-icon-box">
@@ -323,12 +489,12 @@
       <p class="confirm-desc" id="deleteEventNameDesc">Are you sure you want to permanently remove this event from the city dashboard?</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Keep Event</button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Permanently</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
       </div>
     </div>
   </div>
 
-  <!-- 4. Interactive Rating Modal -->
+  <!-- 6. Interactive Rating Modal -->
   <div class="modal-backdrop" id="ratingModal" aria-hidden="true">
     <div class="modal-dialog modal-small text-center">
       <div class="rating-dialog-header">
@@ -353,7 +519,7 @@
     </div>
   </div>
 
-  <!-- Toast / Snackbar Notification -->
+  <!-- Toast Notification -->
   <div class="toast-notification" id="toastNotification" role="alert" aria-live="polite">
     <span class="material-symbols-outlined toast-icon" id="toastIcon">check_circle</span>
     <span class="toast-message" id="toastMessage">Action completed successfully</span>
@@ -362,4 +528,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-
