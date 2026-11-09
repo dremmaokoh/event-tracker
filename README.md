@@ -1,43 +1,47 @@
 # CityPulse Nigeria 🇳🇬 — Nigerian City Events Hub
 
-A modern, responsive web application for discovering, tracking, rating, and managing live events across major Nigerian cities. Built with vanilla HTML5, CSS3, and JavaScript, with **client-side persistence via `localStorage`** and zero external backend dependencies.
+A modern, responsive web application for discovering, tracking, rating, and discussing live events across major Nigerian cities. Built with vanilla HTML5, CSS3, and JavaScript, with **client-side persistence via `localStorage`** and zero external backend dependencies.
 
 ---
 
-## 🌟 Key Updates & Features
+## 🌟 Key Product Features
 
-### 1. 🇳🇬 Major Nigerian Cities Focus
-- Pre-configured with major Nigerian cultural and commercial hubs:
+### 1. 👥 Strict Public Attendee vs. Admin Permissions
+- **Public Attendee Experience (Shared Links)**:
+  - When organizers share event dashboard links (e.g. `?view=public`), attendees are strictly placed in visitor mode.
+  - Attendees **CANNOT** see or access "Post Event", edit, or delete controls.
+  - Attendees can:
+    1. **View** full event listings, photos, schedules, and ticket pricing.
+    2. **Recommend (Like/Upvote)** events with live recommendation tally.
+    3. **Rate** events (1 to 5 stars) affecting the community score.
+    4. **Drop Comments & Reviews**: Read and post real attendee comments directly under each event.
+- **Authorized Admin Experience**:
+  - Secure Admin Portal with Sign In, Sign Up, and one-click demo access (`admin@citypulse.ng` / `password123`).
+  - Only authenticated admins can publish new events, update details, or remove events.
+
+### 2. 💬 Attendee Comments & Community Discussion
+- Each event includes a dedicated **Attendee Reviews & Discussion** section inside the details modal.
+- Visitors can submit their name, 1–5 star rating, and review text.
+- Comments persist across reloads via `localStorage` under `citypulse_event_comments`.
+- Cards display live comment counters (`💬`).
+- Added sorting filter: **"Most Discussed"** to find the most talked-about events.
+
+### 3. 🇳🇬 Major Nigerian Cities
+- Pre-configured with major cultural and commercial hubs:
   - **Lagos** (Victoria Island, Lekki, Eko Atlantic, Ikeja)
-  - **Abuja (FCT)** (Maitama, Garki, Central Business District)
-  - **Port Harcourt** (Old GRA, Polo Club, Trans-Amadi)
-  - **Ibadan** (Agodi, Bodija, Ring Road)
+  - **Abuja (FCT)** (Maitama, Garki, Millennium Park)
+  - **Port Harcourt** (Old GRA, Polo Club)
+  - **Ibadan** (Agodi Gardens, Bodija)
   - **Enugu** (Independence Layout, Polo Park)
   - **Benin City**, **Kano**, **Calabar**, **Asaba**, plus custom city support.
 
-### 2. 💵 Naira (₦) & Dollar ($) Ticketing
-- Ticket pricing is standardized in **Naira (`₦`)** and **Dollars (`$`)**, or **Free Admission**:
-  - e.g. `₦20,000` for Afrobeats Concerts, `₦5,000` for Food Fiestas, `$50` for Tech Summits, or Free Admission.
-  - Sorter supports ordering tickets from lowest to highest price.
+### 4. 💵 Naira (₦) & Dollar ($) Ticketing
+- Ticket pricing is formatted in **Naira (`₦`)**, **Dollars (`$`)**, or **Free Admission**.
+- Sorter supports ordering tickets from lowest to highest price.
 
-### 3. 🛡️ Admin Sign Up & Login System
-- **Authorized Admin Access**: Only verified administrators can publish, edit, or delete events.
-- **Admin Portal**:
-  - **Sign In**: Login with email and password.
-  - **Sign Up**: Register new administrator accounts (stored in `localStorage`).
-  - **⚡ Quick Demo Access**: One-click demo login button for quick evaluation (Email: `admin@citypulse.ng` / Password: `password123`).
-- **Profile Pill & Sign Out**: Displays the active admin's name, initials, and an instant logout button.
-
-### 4. 🔗 Public Link Sharing
-- Admins can click **"Share Link"** in the top navbar or banner:
-  - Generates the public dashboard link with city query parameters.
-  - One-click copy to clipboard with instant toast notification.
-  - Quick share buttons for **WhatsApp** and **𝕏 (Twitter)** to share directly with attendees.
-
-### 5. ❤️ Attendee Interactions
-- **Recommend (Upvote)**: Community members can recommend events with a live counter and saved state.
-- **Interactive 5-Star Community Ratings**: Attendees can submit ratings (1 to 5 stars) which dynamically updates the event's average rating and review tally.
-- **Detailed Event View**: High-resolution imagery, full venue details, schedules, and ticket pricing.
+### 5. 🔗 Protected Attendee Share Links
+- Admins can click **"Share Link"** to copy an attendee-safe public URL (`?view=public`).
+- Direct one-click share to **WhatsApp** and **𝕏 (Twitter)**.
 
 ---
 
@@ -45,9 +49,9 @@ A modern, responsive web application for discovering, tracking, rating, and mana
 
 ```text
 Event Tracker/
-├── index.html       # Nigerian events layout, Admin Auth modal, Share modal, and cards grid
-├── style.css        # Responsive styling with emerald Nigerian theme, card elevations & modals
-├── script.js        # Controller with localStorage sync, Admin Auth, and Nigerian seed data
+├── index.html       # Public layout, attendee comment UI, Admin Auth & Share modals
+├── style.css        # Responsive styling with emerald Nigerian theme, comments feed & modals
+├── script.js        # Controller with comments engine, permission locks, and localStorage sync
 └── README.md        # Product documentation
 ```
 
@@ -55,7 +59,7 @@ Event Tracker/
 
 ## 🚀 How to Run
 
-Simply double-click `index.html` in your browser or run:
+Simply open `index.html` in your browser or run:
 
 ```bash
 # In Windows PowerShell:

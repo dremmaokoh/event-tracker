@@ -9,6 +9,7 @@
 const STORAGE_EVENTS_KEY = 'citypulse_events_data';
 const STORAGE_USER_RECS_KEY = 'citypulse_user_recommendations';
 const STORAGE_USER_RATINGS_KEY = 'citypulse_user_ratings';
+const STORAGE_EVENT_COMMENTS_KEY = 'citypulse_event_comments';
 const STORAGE_ADMIN_ACCOUNTS_KEY = 'citypulse_admin_accounts';
 const STORAGE_ADMIN_SESSION_KEY = 'citypulse_admin_session';
 
@@ -161,6 +162,35 @@ const defaultNigerianEvents = [
   }
 ];
 
+// Seed attendee comments for realistic community discussion
+const defaultComments = {
+  'evt-ng-101': [
+    {
+      id: 'cmt-1',
+      name: 'Chidi Okafor',
+      text: 'Last year was an absolute movie! Make sure you get to Eko Atlantic before 6 PM to beat the bridge traffic.',
+      rating: 5,
+      date: '2 days ago'
+    },
+    {
+      id: 'cmt-2',
+      name: 'Zainab Ahmed',
+      text: 'Super hyped for the guest performers. Can anyone confirm if the VIP passes include reserved parking?',
+      rating: 5,
+      date: 'Yesterday'
+    }
+  ],
+  'evt-ng-103': [
+    {
+      id: 'cmt-3',
+      name: 'Ibrahim Danladi',
+      text: 'The honey suya from the Maitama pitmasters is unbeatable. Best family festival in Abuja hands down!',
+      rating: 5,
+      date: '3 days ago'
+    }
+  ]
+};
+
 // Default demo administrator credentials
 const defaultAdminAccount = {
   name: 'Emmanuel Okoh',
@@ -173,7 +203,9 @@ const defaultAdminAccount = {
 let events = [];
 let userRecommendations = new Set();
 let userRatings = {}; // { eventId: rating }
+let eventComments = {}; // { eventId: [ { id, name, text, rating, date } ] }
 let currentAdminUser = null; // null if not logged in
+let isSharedLinkView = false; // true if opened via shared attendee link
 
 // Filter State
 let selectedCity = 'all';
@@ -185,9 +217,12 @@ let searchKeyword = '';
 // Active dialog targets
 let activeEventForRating = null;
 let activeEventForDelete = null;
+let activeEventForDetail = null;
+let newCommentRating = 5;
 let toastTimeout = null;
 
 // DOM Elements
+const brandLogoBtn = document.getElementById('brandLogoBtn');
 const eventsGrid = document.getElementById('eventsGrid');
 const emptyState = document.getElementById('emptyState');
 const navCitySelect = document.getElementById('navCitySelect');
@@ -275,11 +310,29 @@ const toastIcon = document.getElementById('toastIcon');
 
 /* ── Lifecycle Initialization ────────────────────────────────────────────── */
 function init() {
+  detectURLParams();
   loadData();
   bindEvents();
   updateAuthUI();
   syncCityDropdownOptions();
   render();
+}
+
+/* ── Check URL Parameters (Shared Link detection) ────────────────────────── */
+function detectURLParams() {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // If user opens a link with view=public or shared=true, guarantee public attendee mode!
+  if (urlParams.get('view') === 'public' || urlParams.get('shared') === '1') {
+    isSharedLinkView = true;
+    currentAdminUser = null; // Do not use admin session when viewing shared link
+  }
+
+  // Pre-filter city if specified in shared URL (e.g. ?city=Abuja)
+  const cityParam = urlParams.get('city');
+  if (cityParam) {
+    selectedCity = cityParam;
+  }
 }
 
 /* ── Storage Functions ────────────────────────────────────────────────────── */
@@ -318,19 +371,35 @@ function loadData() {
     }
   }
 
-  // 4. Admin Accounts (Pre-seed demo admin if none exist)
+  // 4. Comments & Reviews
+  const savedComments = localStorage.getItem(STORAGE_EVENT_COMMENTS_KEY);
+  if (savedComments) {
+    try {
+      eventComments = JSON.parse(savedComments);
+    } catch (e) {
+      eventComments = { ...defaultComments };
+      saveComments();
+    }
+  } else {
+    eventComments = { ...defaultComments };
+    saveComments();
+  }
+
+  // 5. Admin Accounts
   const savedAccounts = localStorage.getItem(STORAGE_ADMIN_ACCOUNTS_KEY);
   if (!savedAccounts) {
     localStorage.setItem(STORAGE_ADMIN_ACCOUNTS_KEY, JSON.stringify([defaultAdminAccount]));
   }
 
-  // 5. Admin Session
-  const savedSession = localStorage.getItem(STORAGE_ADMIN_SESSION_KEY);
-  if (savedSession) {
-    try {
-      currentAdminUser = JSON.parse(savedSession);
-    } catch (e) {
-      currentAdminUser = null;
+  // 6. Admin Session (Only if not explicitly on a shared attendee link)
+  if (!isSharedLinkView) {
+    const savedSession = localStorage.getItem(STORAGE_ADMIN_SESSION_KEY);
+    if (savedSession) {
+      try {
+        currentAdminUser = JSON.parse(savedSession);
+      } catch (e) {
+        currentAdminUser = null;
+      }
     }
   }
 }
@@ -347,6 +416,10 @@ function saveUserRatings() {
   localStorage.setItem(STORAGE_USER_RATINGS_KEY, JSON.stringify(userRatings));
 }
 
+function saveComments() {
+  localStorage.setItem(STORAGE_EVENT_COMMENTS_KEY, JSON.stringify(eventComments));
+}
+
 function getAdminAccounts() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_ADMIN_ACCOUNTS_KEY)) || [defaultAdminAccount];
@@ -361,8 +434,8 @@ function saveAdminAccounts(accounts) {
 
 /* ── Admin Authentication Controller ──────────────────────────────────────── */
 function updateAuthUI() {
-  if (currentAdminUser) {
-    // Show logged-in controls
+  if (currentAdminUser && !isSharedLinkView) {
+    // Verified Admin is logged in
     openAuthModalBtn.style.display = 'none';
     adminControls.style.display = 'flex';
     adminBanner.style.display = 'block';
@@ -379,7 +452,8 @@ function updateAuthUI() {
       .toUpperCase();
     adminAvatarText.textContent = initials;
   } else {
-    // Show public view (logged out)
+    // Public Attendee / Visitor view
+    // Strictly hide ALL admin posting, editing, and deletion controls!
     openAuthModalBtn.style.display = 'inline-flex';
     adminControls.style.display = 'none';
     adminBanner.style.display = 'none';
@@ -393,11 +467,12 @@ function loginAdmin(email, password) {
   );
 
   if (matched) {
+    isSharedLinkView = false; // exit forced public mode
     currentAdminUser = { name: matched.name, email: matched.email, city: matched.city };
     localStorage.setItem(STORAGE_ADMIN_SESSION_KEY, JSON.stringify(currentAdminUser));
     updateAuthUI();
     closeAuthModal();
-    showToast(`Welcome back, ${matched.name}! Admin studio unlocked.`, 'verified_user');
+    showToast(`Welcome, ${matched.name}! Admin Studio unlocked.`, 'verified_user');
     render();
     return true;
   } else {
@@ -419,7 +494,7 @@ function registerAdmin(name, email, password, city) {
   accounts.push(newAccount);
   saveAdminAccounts(accounts);
 
-  // Auto login newly registered admin
+  isSharedLinkView = false;
   currentAdminUser = { name, email, city };
   localStorage.setItem(STORAGE_ADMIN_SESSION_KEY, JSON.stringify(currentAdminUser));
   updateAuthUI();
@@ -433,22 +508,24 @@ function logoutAdmin() {
   currentAdminUser = null;
   localStorage.removeItem(STORAGE_ADMIN_SESSION_KEY);
   updateAuthUI();
-  showToast('Logged out of Admin Studio. Returned to Public Explorer View.', 'logout');
+  showToast('Signed out of Admin Studio. Returned to Public Attendee View.', 'logout');
   render();
 }
 
 /* ── Share Public Link Generator ─────────────────────────────────────────── */
 function openShareModal() {
-  // Build public dashboard URL
-  let publicUrl = window.location.href.split('?')[0];
+  // Always append view=public so the recipient enters the attendee mode!
+  let baseUrl = window.location.href.split('?')[0];
+  let publicUrl = `${baseUrl}?view=public`;
+  
   if (selectedCity !== 'all') {
-    publicUrl += `?city=${encodeURIComponent(selectedCity)}`;
+    publicUrl += `&city=${encodeURIComponent(selectedCity)}`;
   }
 
   shareLinkInput.value = publicUrl;
 
   const shareText = encodeURIComponent(
-    `Check out exciting live events happening in Nigerian cities on CityPulse: ${publicUrl}`
+    `Check out live events happening in Nigerian cities on CityPulse! Browse, recommend, and leave comments: ${publicUrl}`
   );
 
   shareWhatsAppBtn.href = `https://api.whatsapp.com/send?text=${shareText}`;
@@ -462,7 +539,7 @@ function copyShareLink() {
   const link = shareLinkInput.value;
   if (navigator.clipboard) {
     navigator.clipboard.writeText(link).then(() => {
-      showToast('Public link copied to clipboard!', 'content_copy');
+      showToast('Attendee public link copied to clipboard!', 'content_copy');
     }).catch(() => {
       fallbackCopy(link);
     });
@@ -474,7 +551,7 @@ function copyShareLink() {
 function fallbackCopy(text) {
   shareLinkInput.select();
   document.execCommand('copy');
-  showToast('Public link copied to clipboard!', 'content_copy');
+  showToast('Attendee public link copied to clipboard!', 'content_copy');
 }
 
 /* ── Dynamic City Dropdown Sync ───────────────────────────────────────────── */
@@ -535,6 +612,11 @@ function getFilteredEvents() {
     if (sortBy === 'rating') {
       return (b.rating || 0) - (a.rating || 0);
     }
+    if (sortBy === 'comments') {
+      const cA = (eventComments[a.id] || []).length;
+      const cB = (eventComments[b.id] || []).length;
+      return cB - cA;
+    }
     if (sortBy === 'date-asc') {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     }
@@ -557,7 +639,7 @@ function render() {
     ? 'Happening Across Nigeria' 
     : `Happening in ${selectedCity}, Nigeria`;
 
-  eventsCountHeading.textContent = `Events (${filtered.length})`;
+  eventsCountHeading.textContent = `Live Events (${filtered.length})`;
 
   // Subtitle info
   let statusParts = [];
@@ -589,11 +671,13 @@ function render() {
   emptyState.style.display = 'none';
 
   // Render Event Cards
+  const isAdmin = Boolean(currentAdminUser) && !isSharedLinkView;
+
   eventsGrid.innerHTML = filtered.map(evt => {
     const isRecommended = userRecommendations.has(evt.id);
     const formattedDate = formatEventDate(evt.date);
     const starString = renderStars(evt.rating || 0);
-    const isAdmin = Boolean(currentAdminUser);
+    const commentsList = eventComments[evt.id] || [];
 
     return `
       <article class="event-card" data-id="${evt.id}">
@@ -624,6 +708,10 @@ function render() {
             <span class="stars-container" aria-label="${evt.rating} stars">${starString}</span>
             <span class="rating-score">${(evt.rating || 0).toFixed(1)}</span>
             <span class="rating-count">(${evt.ratingCount || 0} reviews)</span>
+            <span class="card-comments-count">
+              <span class="material-symbols-outlined" style="font-size:15px;">chat_bubble_outline</span>
+              ${commentsList.length}
+            </span>
           </div>
         </div>
 
@@ -643,6 +731,7 @@ function render() {
 
           <!-- Action Group -->
           <div class="card-action-group">
+            <!-- Rate button (Public & Attendee feature) -->
             <button 
               type="button" 
               class="icon-action-btn" 
@@ -652,12 +741,22 @@ function render() {
               <span class="material-symbols-outlined" style="font-size:18px;">star_rate</span>
             </button>
 
+            <!-- Drop comment shortcut button -->
+            <button 
+              type="button" 
+              class="icon-action-btn" 
+              onclick="openDetailModal('${evt.id}', true)" 
+              title="View & drop comments"
+            >
+              <span class="material-symbols-outlined" style="font-size:18px;">mode_comment</span>
+            </button>
+
             ${isAdmin ? `
               <button 
                 type="button" 
                 class="icon-action-btn" 
                 onclick="openEditModal(event, '${evt.id}')" 
-                title="Edit Event (Admin)"
+                title="Edit Event (Admin Only)"
               >
                 <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
               </button>
@@ -665,7 +764,7 @@ function render() {
                 type="button" 
                 class="icon-action-btn delete-btn" 
                 onclick="openDeleteConfirm(event, '${evt.id}')" 
-                title="Delete Event (Admin)"
+                title="Delete Event (Admin Only)"
               >
                 <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
               </button>
@@ -770,13 +869,15 @@ function submitRating() {
   render();
 }
 
-/* ── Event Detail Modal (Full view) ───────────────────────────────────────── */
-window.openDetailModal = function(id) {
+/* ── Event Detail Modal with Attendee Comments ────────────────────────────── */
+window.openDetailModal = function(id, focusComments = false) {
   const evt = events.find(e => e.id === id);
   if (!evt) return;
 
+  activeEventForDetail = evt;
   const isRecommended = userRecommendations.has(evt.id);
   const formattedDate = formatFullDate(evt.date);
+  const comments = eventComments[evt.id] || [];
 
   detailModalBody.innerHTML = `
     <div class="detail-cover">
@@ -839,7 +940,8 @@ window.openDetailModal = function(id) {
         <p>${escapeHtml(evt.description)}</p>
       </div>
 
-      <div class="modal-actions mt-4">
+      <!-- Quick Attendee Actions -->
+      <div class="modal-actions mt-2" style="justify-content: flex-start; flex-wrap: wrap;">
         <button 
           type="button" 
           class="recommend-btn ${isRecommended ? 'recommended' : ''}" 
@@ -854,21 +956,160 @@ window.openDetailModal = function(id) {
           <span>Rate Event</span>
         </button>
       </div>
+
+      <!-- ── ATTENDEE COMMENTS & REVIEWS SECTION ── -->
+      <section class="comments-section" id="commentsSection">
+        <div class="comments-header">
+          <h3 class="comments-title">
+            <span class="material-symbols-outlined">forum</span>
+            Attendee Reviews & Discussion (${comments.length})
+          </h3>
+        </div>
+
+        <!-- Drop a Comment Form (Accessible to all attendees) -->
+        <div class="comment-form-card">
+          <form id="commentSubmitForm" onsubmit="handleCommentSubmit(event, '${evt.id}')">
+            <div class="comment-form-row">
+              <input 
+                type="text" 
+                id="commentAuthorName" 
+                class="comment-name-input" 
+                placeholder="Your Name (e.g. Tunde, Chidinma, Aminu)" 
+                required
+              >
+              <!-- Star rating picker for comment -->
+              <div class="comment-rating-picker" id="commentRatingPicker" title="Rate this event with your comment">
+                <span class="c-star active" data-v="1" onclick="setCommentRating(1)">★</span>
+                <span class="c-star active" data-v="2" onclick="setCommentRating(2)">★</span>
+                <span class="c-star active" data-v="3" onclick="setCommentRating(3)">★</span>
+                <span class="c-star active" data-v="4" onclick="setCommentRating(4)">★</span>
+                <span class="c-star active" data-v="5" onclick="setCommentRating(5)">★</span>
+              </div>
+            </div>
+
+            <textarea 
+              id="commentTextContent" 
+              class="comment-textarea" 
+              placeholder="Drop a comment, share your tips, or review this event..." 
+              required
+            ></textarea>
+
+            <button type="submit" class="btn btn-primary btn-sm">
+              <span class="material-symbols-outlined" style="font-size:16px;">send</span>
+              <span>Post Comment</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Comments List -->
+        <div class="comments-list" id="commentsListContainer">
+          ${renderCommentsList(comments)}
+        </div>
+      </section>
     </div>
   `;
 
   eventDetailModal.classList.add('open');
   eventDetailModal.setAttribute('aria-hidden', 'false');
+
+  if (focusComments) {
+    setTimeout(() => {
+      const commentInput = document.getElementById('commentAuthorName');
+      if (commentInput) {
+        commentInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        commentInput.focus();
+      }
+    }, 200);
+  }
+};
+
+function renderCommentsList(comments) {
+  if (!comments || comments.length === 0) {
+    return `<div class="empty-comments-box">Be the first attendee to drop a comment or review for this event!</div>`;
+  }
+
+  return comments.map(c => {
+    const starString = '★'.repeat(c.rating || 5) + '☆'.repeat(5 - (c.rating || 5));
+    const initial = (c.name || 'A').charAt(0).toUpperCase();
+
+    return `
+      <div class="comment-item">
+        <div class="comment-avatar">${escapeHtml(initial)}</div>
+        <div class="comment-body">
+          <div class="comment-author-row">
+            <span class="comment-author-name">${escapeHtml(c.name)}</span>
+            <div class="comment-meta">
+              <span class="comment-rating-stars">${starString}</span>
+              <span>•</span>
+              <span>${escapeHtml(c.date || 'Recently')}</span>
+            </div>
+          </div>
+          <p class="comment-text">${escapeHtml(c.text)}</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.setCommentRating = function(rating) {
+  newCommentRating = rating;
+  const stars = document.querySelectorAll('#commentRatingPicker .c-star');
+  stars.forEach((s, idx) => {
+    s.classList.toggle('active', idx < rating);
+  });
+};
+
+window.handleCommentSubmit = function(e, eventId) {
+  e.preventDefault();
+
+  const nameInput = document.getElementById('commentAuthorName');
+  const textInput = document.getElementById('commentTextContent');
+
+  const name = nameInput.value.trim();
+  const text = textInput.value.trim();
+
+  if (!name || !text) return;
+
+  const newComment = {
+    id: 'cmt-' + Date.now(),
+    name,
+    text,
+    rating: newCommentRating || 5,
+    date: 'Just now'
+  };
+
+  if (!eventComments[eventId]) {
+    eventComments[eventId] = [];
+  }
+
+  eventComments[eventId].unshift(newComment);
+  saveComments();
+
+  // Re-render comments container
+  const container = document.getElementById('commentsListContainer');
+  if (container) {
+    container.innerHTML = renderCommentsList(eventComments[eventId]);
+  }
+
+  // Reset form inputs
+  nameInput.value = '';
+  textInput.value = '';
+  newCommentRating = 5;
+  setCommentRating(5);
+
+  showToast('Your comment was posted!', 'chat');
+  render(); // Update card comment count in background
 };
 
 function closeDetailModal() {
   eventDetailModal.classList.remove('open');
   eventDetailModal.setAttribute('aria-hidden', 'true');
+  activeEventForDetail = null;
 }
 
-/* ── Admin: Create & Edit Modal ───────────────────────────────────────────── */
+/* ── Admin: Create & Edit Modal (Strictly Admin only) ─────────────────────── */
 function openCreateModal() {
-  if (!currentAdminUser) {
+  if (!currentAdminUser || isSharedLinkView) {
     openAuthModal();
     return;
   }
@@ -892,7 +1133,7 @@ function openCreateModal() {
 
 window.openEditModal = function(event, id) {
   if (event) event.stopPropagation();
-  if (!currentAdminUser) {
+  if (!currentAdminUser || isSharedLinkView) {
     openAuthModal();
     return;
   }
@@ -951,7 +1192,7 @@ function closeFormModal() {
 function handleEventFormSubmit(e) {
   e.preventDefault();
 
-  if (!currentAdminUser) {
+  if (!currentAdminUser || isSharedLinkView) {
     openAuthModal();
     return;
   }
@@ -1041,7 +1282,7 @@ function handleEventFormSubmit(e) {
 /* ── Admin: Delete Confirmation Modal ─────────────────────────────────────── */
 window.openDeleteConfirm = function(event, id) {
   if (event) event.stopPropagation();
-  if (!currentAdminUser) {
+  if (!currentAdminUser || isSharedLinkView) {
     openAuthModal();
     return;
   }
@@ -1071,10 +1312,12 @@ function executeDelete() {
   events = events.filter(e => e.id !== targetId);
   userRecommendations.delete(targetId);
   delete userRatings[targetId];
+  delete eventComments[targetId];
 
   saveEvents();
   saveUserRecs();
   saveUserRatings();
+  saveComments();
   syncCityDropdownOptions();
 
   showToast(`Deleted "${targetName}"`, 'delete_forever');
@@ -1167,6 +1410,10 @@ function escapeHtml(text) {
 
 /* ── Event Bindings ───────────────────────────────────────────────────────── */
 function bindEvents() {
+  brandLogoBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   // Auth button & Modal
   openAuthModalBtn.addEventListener('click', openAuthModal);
   closeAuthModalBtn.addEventListener('click', closeAuthModal);

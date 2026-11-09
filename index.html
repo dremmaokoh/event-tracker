@@ -16,7 +16,7 @@
   <!-- Top Navigation Bar -->
   <header class="navbar">
     <div class="nav-container">
-      <div class="brand" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+      <div class="brand" id="brandLogoBtn">
         <div class="brand-logo">
           <span class="material-symbols-outlined logo-icon">location_city</span>
         </div>
@@ -45,13 +45,13 @@
 
       <!-- Right Nav Controls (Admin Portal & Actions) -->
       <div class="nav-actions">
-        <!-- Logged Out State: Admin Portal Button -->
+        <!-- Logged Out / Public State: Admin Portal Button (hidden on shared links) -->
         <button class="btn btn-outline" id="openAuthModalBtn">
           <span class="material-symbols-outlined">lock</span>
           <span>Admin Portal</span>
         </button>
 
-        <!-- Logged In Admin Controls (Hidden by default) -->
+        <!-- Logged In Admin Controls (Strictly hidden for public attendees) -->
         <div class="admin-controls" id="adminControls" style="display: none;">
           <!-- Share Link Button -->
           <button class="btn btn-share" id="sharePublicLinkBtn" title="Share public link with attendees">
@@ -59,7 +59,7 @@
             <span>Share Link</span>
           </button>
 
-          <!-- Create Event Button -->
+          <!-- Create Event Button (Only visible to verified admins) -->
           <button class="btn btn-primary" id="openCreateModalBtn">
             <span class="material-symbols-outlined">add_circle</span>
             <span>Post Event</span>
@@ -72,7 +72,7 @@
               <span class="admin-name" id="adminNameDisplay">Admin</span>
               <span class="admin-role">Organizer</span>
             </div>
-            <button class="icon-btn-ghost" id="adminLogoutBtn" title="Sign Out">
+            <button class="icon-btn-ghost" id="adminLogoutBtn" title="Sign Out of Admin Studio">
               <span class="material-symbols-outlined">logout</span>
             </button>
           </div>
@@ -81,7 +81,7 @@
     </div>
   </header>
 
-  <!-- Admin Active Management Bar -->
+  <!-- Admin Active Management Banner (Strictly hidden for public attendees) -->
   <div class="admin-banner" id="adminBanner" style="display: none;">
     <div class="admin-banner-inner">
       <div class="admin-badge">
@@ -89,12 +89,12 @@
         <span>Authorized Admin Session</span>
       </div>
       <p class="admin-banner-text">
-        Logged in as <strong id="adminSessionEmail">admin@citypulse.ng</strong>. You can post, edit, or delete events. Visitors access the public dashboard via your share link.
+        Logged in as <strong id="adminSessionEmail">admin@citypulse.ng</strong>. You can publish, edit, and delete events. Attendees accessing the shared link only see public browsing, recommendations, and reviews.
       </p>
       <div class="admin-banner-actions">
         <button class="btn btn-sm btn-white-glass" id="quickShareBtn">
           <span class="material-symbols-outlined" style="font-size:16px;">content_copy</span>
-          Copy Public Link
+          Copy Attendee Link
         </button>
       </div>
     </div>
@@ -147,6 +147,7 @@
               <select id="sortSelect" aria-label="Sort Events">
                 <option value="recommended">🔥 Most Recommended</option>
                 <option value="rating">⭐ Highest Rated</option>
+                <option value="comments">💬 Most Discussed</option>
                 <option value="date-asc">📅 Upcoming First</option>
                 <option value="price-asc">💵 Ticket Price (Low to High)</option>
                 <option value="newest">✨ Recently Added</option>
@@ -327,8 +328,8 @@
       <div class="share-icon-circle">
         <span class="material-symbols-outlined">send</span>
       </div>
-      <h3 class="modal-title">Share Event Dashboard</h3>
-      <p class="modal-subtitle">Share this public link with attendees so they can view, rate, and recommend your city events.</p>
+      <h3 class="modal-title">Share Attendee Link</h3>
+      <p class="modal-subtitle">Share this public link with attendees so they can browse, recommend, rate, and comment on your events without seeing admin options.</p>
 
       <div class="share-input-box">
         <input type="text" id="shareLinkInput" readonly value="">
@@ -349,7 +350,7 @@
     </div>
   </div>
 
-  <!-- 3. Event Details Modal (For Visitors & Attendees) -->
+  <!-- 3. Event Details & Comments Modal (For Visitors & Attendees) -->
   <div class="modal-backdrop" id="eventDetailModal" aria-hidden="true">
     <div class="modal-dialog modal-large">
       <button class="modal-close-btn" id="closeDetailModalBtn" title="Close">
@@ -359,7 +360,7 @@
     </div>
   </div>
 
-  <!-- 4. Admin Create / Edit Event Modal -->
+  <!-- 4. Admin Create / Edit Event Modal (Strictly Admin only) -->
   <div class="modal-backdrop" id="eventFormModal" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-header">
